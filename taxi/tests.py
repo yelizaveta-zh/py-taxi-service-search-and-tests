@@ -1,6 +1,7 @@
 from django.test import TestCase
 from django.urls import reverse
-from .models import Driver, Car, Manufacturer
+from taxi.models import Driver, Car, Manufacturer
+from django.contrib.auth import get_user_model
 
 
 class SearchTests(TestCase):
@@ -53,3 +54,31 @@ class SearchTests(TestCase):
         response = self.client.get(reverse("taxi:driver-list"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, self.driver.username)
+
+
+class TaxiViewsTest(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username="testuser", password="testpass"
+        )
+        self.manufacturer = Manufacturer.objects.create(
+            name="Toyota", country="Japan"
+        )
+        self.car = Car.objects.create(
+            model="Corolla", manufacturer=self.manufacturer
+        )
+
+    def test_index_view_requires_login(self):
+        response = self.client.get(reverse("taxi:index"))
+        self.assertEqual(response.status_code, 302)  # Redirects to login page
+
+    def test_manufacturer_list_view_authenticated(self):
+        self.client.login(username="testuser", password="testpass")
+        response = self.client.get(reverse("taxi:manufacturer-list"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "taxi/manufacturer_list.html")
+
+    def test_car_create_view(self):
+        self.client.login(username="testuser", password="testpass")
+        response = self.client.get(reverse("taxi:car-create"))
+        self.assertEqual(response.status_code, 200)
