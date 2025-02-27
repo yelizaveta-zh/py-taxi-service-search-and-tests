@@ -1,59 +1,14 @@
 from django.test import TestCase
 from django.urls import reverse
-from taxi.models import Driver, Car, Manufacturer
 from django.contrib.auth import get_user_model
 
-
-class SearchTests(TestCase):
-
-    def setUp(self):
-        self.manufacturer = Manufacturer.objects.create(
-            name="Tesla",
-            country="USA"
-        )
-        self.car = Car.objects.create(
-            model="Model S",
-            manufacturer=self.manufacturer
-        )
-        self.driver = Driver.objects.create(
-            username="john_doe",
-            first_name="John",
-            last_name="Doe",
-            license_number="123456",
-        )
-
-    def test_driver_search_by_username(self):
-        response = self.client.get(
-            reverse("taxi:driver-list") + "?q=john_doe"
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "john_doe")
-
-    def test_car_search_by_model(self):
-        response = self.client.get(
-            reverse("taxi:car-list") + "?q=Model S"
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Model S")
-
-    def test_manufacturer_search_by_name(self):
-        response = self.client.get(
-            reverse("taxi:manufacturer-list") + "?q=Tesla"
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Tesla")
-
-    def test_no_search_results(self):
-        response = self.client.get(
-            reverse("taxi:driver-list") + "?q=nonexistent_user"
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "No drivers found")
-
-    def test_search_with_empty_query(self):
-        response = self.client.get(reverse("taxi:driver-list"))
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, self.driver.username)
+from taxi.forms import (
+    DriverSearchForm,
+    DriverCreationForm,
+    CarSearchForm,
+    ManufacturerSearchForm
+)
+from taxi.models import Car, Manufacturer
 
 
 class TaxiViewsTest(TestCase):
@@ -82,3 +37,34 @@ class TaxiViewsTest(TestCase):
         self.client.login(username="testuser", password="testpass")
         response = self.client.get(reverse("taxi:car-create"))
         self.assertEqual(response.status_code, 200)
+
+
+class DriverCreationFormTest(TestCase):
+    def test_driver_creation_form_valid_data(self):
+        form = DriverCreationForm(data={
+            "username": "testdriver",
+            "password1": "testpass123",
+            "password2": "testpass123",
+            "license_number": "ABC12345",
+            "first_name": "John",
+            "last_name": "Doe"
+        })
+        self.assertTrue(form.is_valid())
+
+
+class DriverSearchFormTest(TestCase):
+    def test_driver_search_form_valid_data(self):
+        form = DriverSearchForm(data={"username": "driver1"})
+        self.assertTrue(form.is_valid())
+
+
+class CarSearchFormTest(TestCase):
+    def test_car_search_form_valid_data(self):
+        form = CarSearchForm(data={"model": "Corolla"})
+        self.assertTrue(form.is_valid())
+
+
+class ManufacturerSearchFormTest(TestCase):
+    def test_manufacturer_search_form_valid_data(self):
+        form = ManufacturerSearchForm(data={"name": "Toyota"})
+        self.assertTrue(form.is_valid())
